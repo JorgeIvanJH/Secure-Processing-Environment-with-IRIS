@@ -1,0 +1,6 @@
+pandas==2.3.3
+lightgbm==4.6.0
+intersystems-irispython==5.3.0
+pyodbc==5.3.0
+SQLAlchemy==2.0.51
+sqlalchemy-intersystems-iris==1.0.2

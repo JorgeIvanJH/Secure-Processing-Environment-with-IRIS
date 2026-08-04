@@ -1,0 +1,8 @@
+context
+.vscode
+*.csv
+*.txt
+!requirements.txt
+!dur/models/LightGBM_1620_22122025.txt
+!dur/data/data_source.txt
+!dur/data/healthcare_noshows_appointments.csv
