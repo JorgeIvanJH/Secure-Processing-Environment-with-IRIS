@@ -47,14 +47,16 @@ COPY MockPackage /usr/irissys/mgr/MockPackage
 # Copy the generic SQL bootstrap location and the repository data sources.
 # The Docker Compose /dur bind mount overrides /dur with the working copy.
 COPY sql /usr/irissys/mgr/sql
+COPY config /usr/irissys/mgr/config
 COPY dur/data /dur/data
 ENV IRIS_SQL_FILE=/usr/irissys/mgr/sql/bootstrap.sql
+ENV IRIS_SECURITY_POLICY=/usr/irissys/mgr/config/security-policy.json
 # Copy and set permissions for the autoconf script while still root
 COPY iris_autoconf.sh /usr/irissys/iris_autoconf.sh
 RUN sed -i 's/\r$//' /usr/irissys/iris_autoconf.sh && \
     find /usr/irissys/mgr/sql -type f -name '*.sql' -exec sed -i 's/\r$//' {} + && \
     chmod +x /usr/irissys/iris_autoconf.sh && \
-    chown -R irisowner:irisowner /dur/data /usr/irissys/mgr/sql
+    chown -R irisowner:irisowner /dur/data /usr/irissys/mgr/sql /usr/irissys/mgr/config
 
 # Switch back to the default `irisowner` user
 USER irisowner

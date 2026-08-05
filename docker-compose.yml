@@ -10,6 +10,7 @@ services:
     environment:
       # Override this with another SQL file to bootstrap a different data source.
       IRIS_SQL_FILE: "${IRIS_SQL_FILE:-/usr/irissys/mgr/sql/bootstrap.sql}"
+      IRIS_SECURITY_POLICY: "${IRIS_SECURITY_POLICY:-/usr/irissys/mgr/config/security-policy.json}"
       # ISC_DATA_DIRECTORY: /dur/iconfig  # Persistent instance data (optional)
     volumes:
       - ./dur/.:/dur:rw # map host directory to container directory with read-write permissions

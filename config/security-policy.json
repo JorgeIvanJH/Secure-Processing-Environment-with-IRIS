@@ -1,0 +1,16 @@
+{
+  "namespace": "USER",
+  "table": "MockPackage.NoShowsAppointments",
+  "users": [
+    {
+      "username": "Yomna",
+      "password": "demo",
+      "canReadTable": true
+    },
+    {
+      "username": "Jorge",
+      "password": "demo",
+      "canReadTable": false
+    }
+  ]
+}

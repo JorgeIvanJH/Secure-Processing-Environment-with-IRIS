@@ -59,6 +59,26 @@ This approach uses the official IRIS SQL facilities documented under
 [LOAD SQL FROM FILE](https://docs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=RSQL_loadsql),
 and [LOAD DATA](https://docs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=RSQL_loaddata).
 
+## Automatic table-access users
+
+`config/security-policy.json` defines the namespace, table, and two demo users.
+Edit the username, password, or `canReadTable` value and rebuild the image. The
+startup script recreates both users, gives them the basic roles required for an
+SQL connection, and directly grants table `SELECT` only when `canReadTable` is
+`true`.
+
+The notebook `dur/sandbox/EDA.ipynb` contains two simple connection examples.
+Yomna reads five rows into a pandas DataFrame; Jorge runs the same query and is
+denied with SQLCODE `-99`.
+
+The clear-text `demo` passwords are intentionally simple for this local
+demonstration. Replace them or use a secrets-management mechanism outside a
+demo environment.
+
+This follows the official IRIS APIs for
+[creating users](https://docs.intersystems.com/irislatest/csp/documatic/%25CSP.Documatic.cls?CLASSNAME=Security.Users&LIBRARY=%25SYS),
+and [granting SQL privileges](https://docs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=RSQL_grant).
+
 ## Python SQLAlchemy access
 
 The image installs the official InterSystems IRIS SQLAlchemy dialect through
