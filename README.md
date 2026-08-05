@@ -1,11 +1,16 @@
 # Use of IRIS as SPE or TRE
 
-## Automatic CSV import
+## Automatic data bootstrap
 
-Starting the container creates `MockPackage.NoShowsAppointments` and imports
-`dur/data/healthcare_noshows_appointments.csv`. The schema and native IRIS SQL
-load steps are defined in `sql/init_noshows.sql` and invoked by
-`iris_autoconf.sh` after IRIS starts.
+Starting the container runs the SQL script configured by `IRIS_SQL_FILE`. Its
+default is `sql/bootstrap.sql`, which demonstrates a CSV import by creating
+`MockPackage.NoShowsAppointments` and loading
+`dur/data/healthcare_noshows_appointments.csv`.
+
+`iris_autoconf.sh` contains no ObjectScript and knows nothing about the source
+file, table names, columns, or expected row count. It only asks the documented
+IRIS SQL Shell to run the configured SQL file in verbose mode and marks the
+container healthy when no SQL error is reported.
 
 For a new user, the complete setup command is:
 
@@ -14,24 +19,45 @@ docker compose up --build -d
 ```
 
 Docker downloads the public InterSystems IRIS Community Edition image, builds
-this repository image, starts IRIS, and performs the CSV import. No IPM package
-or `csvgenpy` installation is required.
+this repository image, starts IRIS, and runs the SQL bootstrap. No IPM package,
+custom ObjectScript setup class, or `csvgenpy` installation is required.
 
 The standard host ports are `1972` and `52773`. If either is already occupied,
 set `IRIS_SUPERSERVER_PORT` and `IRIS_WEB_PORT` before running Docker Compose;
 for example, use `1973` and `52774`. The ports inside the container remain the
 standard IRIS ports.
 
-The startup step is idempotent: it skips an existing table and verifies that
-its row count still matches the CSV. Docker reports the container as healthy
-only after this verification succeeds. To force a clean re-import, recreate
-the container and its IRIS data storage.
+The example SQL drops and rebuilds its target table, so it is repeatable. For a
+different source, put the files under `dur/data`, replace `sql/bootstrap.sql`
+with the required standard DDL and loading SQL, then rebuild. All source-specific
+conversion and loading logic belongs in that SQL file.
+
+You can instead point the same image at another SQL file. The file must be
+readable inside the container; the repository's `dur` directory is mounted at
+`/dur`:
+
+```powershell
+$env:IRIS_SQL_FILE = "/dur/sql/my_bootstrap.sql"
+docker compose up --build -d
+```
+
+The script is executed on every container start, so make a replacement script
+repeatable with `DROP TABLE IF EXISTS`, `CREATE TABLE IF NOT EXISTS`, or another
+appropriate loading strategy. Docker reports the container as healthy after
+the SQL script completes without a reported negative SQLCODE. Data-quality and
+row-count checks remain source-specific; add the appropriate verification query
+or application test for each source.
 
 Verify the imported data in the Management Portal or with:
 
 ```SQL
 SELECT COUNT(*) FROM MockPackage.NoShowsAppointments
 ```
+
+This approach uses the official IRIS SQL facilities documented under
+[the `iris sql` command](https://docs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=GSA_using_instance),
+[LOAD SQL FROM FILE](https://docs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=RSQL_loadsql),
+and [LOAD DATA](https://docs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=RSQL_loaddata).
 
 ## Python SQLAlchemy access
 

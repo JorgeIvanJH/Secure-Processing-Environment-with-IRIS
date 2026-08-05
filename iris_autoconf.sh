@@ -1,40 +1,41 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
-CSV_PATH="/dur/data/healthcare_noshows_appointments.csv"
-READY_FILE="/tmp/iris_csv_ready"
+SQL_FILE="${IRIS_SQL_FILE:-/usr/irissys/mgr/sql/bootstrap.sql}"
+READY_FILE="/tmp/iris_data_ready"
 
-if [[ ! -r "$CSV_PATH" ]]; then
-    echo "CSV source is missing or unreadable: $CSV_PATH" >&2
+rm -f "$READY_FILE"
+
+if [[ ! -r "$SQL_FILE" ]]; then
+    echo "IRIS SQL bootstrap file is missing or unreadable: $SQL_FILE" >&2
     exit 1
 fi
 
-# Exclude the header. awk counts the final record even if it has no newline.
-CSV_EXPECTED_ROWS=$(awk 'END { print NR - 1 }' "$CSV_PATH")
-export CSV_EXPECTED_ROWS
+# LOAD SQL FROM FILE accepts a quoted file path. Reject a quote instead of
+# constructing an ambiguous SQL command from it.
+if [[ "$SQL_FILE" == *"'"* ]]; then
+    echo "IRIS_SQL_FILE cannot contain a single quote: $SQL_FILE" >&2
+    exit 1
+fi
 
-IRIS_OUTPUT=$(iris session IRIS <<'EOF'
-Write "Importing the CSV setup class...",!
-Set status=$system.OBJ.Import("/usr/irissys/mgr/MockPackage/Setup.cls","ck")
-If $SYSTEM.Status.IsError(status) Do $SYSTEM.Status.DisplayError(status) Halt
+echo "Running IRIS SQL bootstrap: $SQL_FILE"
 
-Write "Ensuring MockPackage.NoShowsAppointments is loaded...",!
-Set expectedRows=+$SYSTEM.Util.GetEnviron("CSV_EXPECTED_ROWS")
-Set status=##class(MockPackage.Setup).Initialize(expectedRows)
-If $SYSTEM.Status.IsError(status) Do $SYSTEM.Status.DisplayError(status) Halt
-
-Write "Enabling DeepSee for USER namespace...",!
-Do EnableDeepSee^%SYS.cspServer("/csp/user/")
-
-Halt
-EOF
-)
+if ! IRIS_OUTPUT=$(
+    printf "LOAD SQL FROM FILE '%s' VERBOSE\nQUIT\n" "$SQL_FILE" | iris sql IRIS
+); then
+    echo "The IRIS SQL Shell could not run the bootstrap." >&2
+    exit 1
+fi
 
 printf '%s\n' "$IRIS_OUTPUT"
 
-if ! grep -q "CSV import verified: ${CSV_EXPECTED_ROWS} rows." <<< "$IRIS_OUTPUT"; then
-    echo "IRIS CSV initialization did not complete successfully." >&2
+# VERBOSE exposes LOAD SQL diagnostics in the terminal. The interactive SQL
+# Shell can still return process status 0 after reporting an SQL error, so its
+# output is checked before the container is marked healthy.
+if grep -Eq 'SQLCODE[^-0-9]*-[0-9]+|ERROR #[0-9]+:|with errors reported:[[:space:]]*[1-9]' <<< "$IRIS_OUTPUT"; then
+    echo "The IRIS SQL bootstrap reported an error." >&2
     exit 1
 fi
 
 touch "$READY_FILE"
+echo "IRIS SQL bootstrap completed successfully."

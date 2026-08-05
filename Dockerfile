@@ -42,15 +42,17 @@ COPY python_utils /usr/irissys/mgr/python/python_utils
 ENV PYTHONPATH=/usr/irissys/mgr/python:${PYTHONPATH}
 
 
-# Copy ObjectScript classes into the image
+# Keep the application source available without compiling it during data setup.
 COPY MockPackage /usr/irissys/mgr/MockPackage
-# Copy the SQL schema/import definition and a default copy of the source data.
-# The Docker Compose /dur bind mount overrides this CSV with the repository copy.
+# Copy the generic SQL bootstrap location and the repository data sources.
+# The Docker Compose /dur bind mount overrides /dur with the working copy.
 COPY sql /usr/irissys/mgr/sql
-COPY dur/data/healthcare_noshows_appointments.csv /dur/data/healthcare_noshows_appointments.csv
+COPY dur/data /dur/data
+ENV IRIS_SQL_FILE=/usr/irissys/mgr/sql/bootstrap.sql
 # Copy and set permissions for the autoconf script while still root
 COPY iris_autoconf.sh /usr/irissys/iris_autoconf.sh
-RUN sed -i 's/\r$//' /usr/irissys/iris_autoconf.sh /usr/irissys/mgr/sql/init_noshows.sql && \
+RUN sed -i 's/\r$//' /usr/irissys/iris_autoconf.sh && \
+    find /usr/irissys/mgr/sql -type f -name '*.sql' -exec sed -i 's/\r$//' {} + && \
     chmod +x /usr/irissys/iris_autoconf.sh && \
     chown -R irisowner:irisowner /dur/data /usr/irissys/mgr/sql
 

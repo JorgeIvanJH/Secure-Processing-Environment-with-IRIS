@@ -1,3 +1,15 @@
+-- This is the repository's example data load. iris_autoconf.sh is generic:
+-- replace this file, or set IRIS_SQL_FILE to another SQL script, to load a
+-- different source. Keep GO on its own line between statements.
+
+-- Make this example repeatable when the container is restarted.
+DROP TABLE IF EXISTS MockPackage.NoShowsAppointmentsCSV
+GO
+
+DROP TABLE IF EXISTS MockPackage.NoShowsAppointments
+GO
+
+-- Stage text booleans before converting them to BIT values in the final table.
 CREATE TABLE MockPackage.NoShowsAppointmentsCSV (
     patientid DECIMAL(20,5),
     appointmentid INTEGER,
